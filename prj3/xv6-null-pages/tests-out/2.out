@@ -1,0 +1,2 @@
+XV6_TEST_OUTPUT: this should print
+XV6_TEST_OUTPUT: this shouldn't print
