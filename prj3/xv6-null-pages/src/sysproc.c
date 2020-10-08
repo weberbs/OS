@@ -93,11 +93,39 @@ sys_uptime(void)
 int
 sys_mprotect(void)
 {
+  int len;
+  void *addr;
+  if(argint(1, &len) < 0)
+    return -1;
+  if(argptr(0, (void*)&addr, sizeof(addr)) < 0)
+    return -1;
+  if (len <= 0)
+    return -1;
+  if((uint) addr % PGSIZE != 0)
+    return -1;
+  for (int i = 0; i < len; i++){
+
+    addr += PGSIZE;
+  }
   return 0;
 }
 
 int
 sys_munprotect(void)
 {
+  int len;
+  void *addr;
+  if(argint(1, &len) < 0)
+    return -1;
+  if(argptr(0, (void*)&addr, sizeof(addr)) < 0)
+    return -1;
+  if (len <= 0)
+    return -1;
+  if((uint) addr % PGSIZE != 0)
+    return -1;
+  for (int i = 0; i < len; i++){
+
+    addr += PGSIZE;
+  }
   return 0;
 }
