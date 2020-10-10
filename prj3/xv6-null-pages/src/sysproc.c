@@ -90,23 +90,53 @@ sys_uptime(void)
   return xticks;
 }
 
+static pte_t *
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
+
 int
 sys_mprotect(void)
 {
   int len;
-  void *addr;
+  void *vaddr;
+  pte_t *vpg;
+  pte_t *pgdir;
+  uint ppg;
+
+  //pde_t *pde;
+  //pte_t *pgtab;
   if(argint(1, &len) < 0)
     return -1;
-  if(argptr(0, (void*)&addr, sizeof(addr)) < 0)
+  if(argptr(0, (void*)&vaddr, sizeof(vaddr)) < 0)
     return -1;
   if (len <= 0)
     return -1;
-  if((uint) addr % PGSIZE != 0)
+  if((uint) vaddr % PGSIZE != 0)
     return -1;
-  for (int i = 0; i < len; i++){
 
-    addr += PGSIZE;
-  }
+  pgdir = myproc() -> pgdir;
+  vpg = walkpgdir(pgdir, vaddr, 0);
+  ppg = V2P(vpg);
+  *vpg = ppg;
+  *vpg &= ~PTE_W;
   return 0;
 }
 
@@ -115,6 +145,10 @@ sys_munprotect(void)
 {
   int len;
   void *addr;
+  //pte_t *pa;
+  //pte_t *pgdir;
+  //pde_t *pde;
+  //pte_t *pgtab;
   if(argint(1, &len) < 0)
     return -1;
   if(argptr(0, (void*)&addr, sizeof(addr)) < 0)
@@ -123,9 +157,15 @@ sys_munprotect(void)
     return -1;
   if((uint) addr % PGSIZE != 0)
     return -1;
-  for (int i = 0; i < len; i++){
 
+  /*pgdir = myproc() -> pgdir;
+  for (int i = 0; i < len; i++){
+    pde = &pgdir[PDX(addr)];
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+    pa = &pgtab[PTX(addr)];
+    *pa = | PTE_W;
     addr += PGSIZE;
-  }
+  }*/
+
   return 0;
 }
