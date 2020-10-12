@@ -119,10 +119,7 @@ sys_mprotect(void)
   void *vaddr;
   pte_t *vpg;
   pte_t *pgdir;
-  uint ppg;
 
-  //pde_t *pde;
-  //pte_t *pgtab;
   if(argint(1, &len) < 0)
     return -1;
   if(argptr(0, (void*)&vaddr, sizeof(vaddr)) < 0)
@@ -131,12 +128,11 @@ sys_mprotect(void)
     return -1;
   if((uint) vaddr % PGSIZE != 0)
     return -1;
-
-  pgdir = myproc() -> pgdir;
-  vpg = walkpgdir(pgdir, vaddr, 0);
-  ppg = V2P(vpg);
-  *vpg = ppg;
-  *vpg &= ~PTE_W;
+  for (int i = 0; i < len; i++){
+    pgdir = myproc() -> pgdir;
+    vpg = walkpgdir(pgdir, vaddr, 0);
+    *vpg &= ~PTE_W;
+  }
   return 0;
 }
 
@@ -144,28 +140,22 @@ int
 sys_munprotect(void)
 {
   int len;
-  void *addr;
-  //pte_t *pa;
-  //pte_t *pgdir;
-  //pde_t *pde;
-  //pte_t *pgtab;
+  void *vaddr;
+  pte_t *vpg;
+  pte_t *pgdir;
+
   if(argint(1, &len) < 0)
     return -1;
-  if(argptr(0, (void*)&addr, sizeof(addr)) < 0)
+  if(argptr(0, (void*)&vaddr, sizeof(vaddr)) < 0)
     return -1;
   if (len <= 0)
     return -1;
-  if((uint) addr % PGSIZE != 0)
+  if((uint) vaddr % PGSIZE != 0)
     return -1;
-
-  /*pgdir = myproc() -> pgdir;
   for (int i = 0; i < len; i++){
-    pde = &pgdir[PDX(addr)];
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-    pa = &pgtab[PTX(addr)];
-    *pa = | PTE_W;
-    addr += PGSIZE;
-  }*/
-
+    pgdir = myproc() -> pgdir;
+    vpg = walkpgdir(pgdir, vaddr, 0);
+    *vpg |= PTE_W;
+  }
   return 0;
 }
