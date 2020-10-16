@@ -111,6 +111,7 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  p->is_child = 0;
 
   return p;
 }
@@ -177,8 +178,104 @@ growproc(int n)
 int
 clone(void(*fcn)(void*, void *), void *arg1, void *arg2, void *stack)
 {
-  return 0;
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+  int ret;
+  uint sp; //stack pointer
+
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  //set up process struct
+  np->stack = stack; // new stack
+  np->pgdir = curproc->pgdir; //same address space as parent
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+  np ->is_child = 1;
+
+  // Clear %eax so that fork returns 0 in the child.
+  np->tf->eax = 0;
+
+
+  //set up thread stack
+  sp = (uint)stack;
+  sp -= 4;
+  copyout(np->pgdir, sp, arg2, 4);
+  sp -= 4;
+  copyout(np->pgdir, sp, arg1, 4);
+  sp -= 4;
+  ret = 0xFFFFFFFF;
+  copyout(np->pgdir, sp, &ret, 4);
+
+  np->tf->esp = sp;
+  //set instruction pointer to the fcn to run
+  np->tf->eip = (uint)fcn;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  pid = np->pid;
+
+  acquire(&ptable.lock);
+
+  np->state = RUNNABLE;
+
+  release(&ptable.lock);
+
+  return pid;
 }
+
+int
+join(void **stack) //mostly copied from wait
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if((p->parent != curproc) || (!p->is_child))
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.

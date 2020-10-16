@@ -104,3 +104,33 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+//copied from OSTEP
+void lock_init(lock_t *lock) {
+  lock->ticket = 0;
+  lock->turn = 0;
+}
+void lock_acquire(lock_t *lock) {
+  int myturn = __sync_fetch_and_add(&lock->ticket, 1);
+  while(lock -> turn != myturn){
+    ;
+  }
+}
+void lock_release(lock_t *lock){
+  lock->turn ++;
+}
+
+int thread_create(void (*start_routine)(void*, void*), void *arg1, void *arg2){
+  //mallock 1 page for stack
+  void *stack = malloc(4096);
+  printf(1, "addr malloced: %d : %p\n", (uint)stack, stack);
+  stack += 4096; //move to top of stack
+  printf(1,"top of stack: %d\n", (uint)stack );
+  int pid = clone(start_routine, arg1, arg2, stack);
+  return pid;
+}
+int thread_join() {
+  void *stack;
+  int pid = join(&stack);
+  free(stack);
+  return pid;
+}
