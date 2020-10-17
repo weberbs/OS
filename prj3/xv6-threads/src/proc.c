@@ -193,8 +193,8 @@ clone(void(*fcn)(void*, void *), void *arg1, void *arg2, void *stack)
   //set up thread stack
   sp = (uint)stack + PGSIZE;
   ustack[0] = 0xffffffff;
-  ustack[1] = (uint)arg1;
-  ustack[2] = (uint)arg2;
+  ustack[1] = *(int *)arg1;
+  ustack[2] = *(int *)arg2;
   sp -= 12;
   if (copyout(np->pgdir, sp, ustack,12) < 0){
     return -1;

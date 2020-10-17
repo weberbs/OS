@@ -95,12 +95,16 @@ sys_clone(void) {
   void *arg1;
   void *arg2;
   void *stack;
+  int a1;
+  int a2;
+  arg1 = &a1;
+  arg2 = &a2;
 
   if (argptr(0, (void*)&fcn, sizeof(void*)) < 0)
     return -1;
-  if (argptr(1, (void*)&arg1, sizeof(void*)) < 0)
+  if (argint(1, &a1) < 0)
     return -1;
-  if (argptr(2, (void*)&arg2, sizeof(void*)) < 0)
+  if (argint(2, &a2) < 0)
     return -1;
   if (argptr(3, (void*)&stack, sizeof(void*)) < 0)
     return -1;
