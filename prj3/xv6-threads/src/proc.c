@@ -111,7 +111,6 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-  p->is_child = 0;
 
   return p;
 }
@@ -181,7 +180,7 @@ clone(void(*fcn)(void*, void *), void *arg1, void *arg2, void *stack)
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
-  int ret;
+  int ustack[3];
   uint sp; //stack pointer
 
 
@@ -189,32 +188,31 @@ clone(void(*fcn)(void*, void *), void *arg1, void *arg2, void *stack)
   if((np = allocproc()) == 0){
     return -1;
   }
-
-  //set up process struct
-  np->stack = stack; // new stack
   np->pgdir = curproc->pgdir; //same address space as parent
+
+  //set up thread stack
+  sp = (uint)stack + PGSIZE;
+  ustack[0] = 0xffffffff;
+  ustack[1] = (uint)arg1;
+  ustack[2] = (uint)arg2;
+  sp -= 12;
+  if (copyout(np->pgdir, sp, ustack,12) < 0){
+    return -1;
+  }
+
+  //set up np proc structure
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np ->is_child = 1;
 
-  // Clear %eax so that fork returns 0 in the child.
+  //clear eax to return 0 in thread
   np->tf->eax = 0;
 
 
-  //set up thread stack
-  sp = (uint)stack;
-  sp -= 4;
-  copyout(np->pgdir, sp, arg2, 4);
-  sp -= 4;
-  copyout(np->pgdir, sp, arg1, 4);
-  sp -= 4;
-  ret = 0xFFFFFFFF;
-  copyout(np->pgdir, sp, &ret, 4);
-
-  np->tf->esp = sp;
+  np->tf->esp = (uint)sp;
   //set instruction pointer to the fcn to run
   np->tf->eip = (uint)fcn;
+  np->stack = stack;
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -246,15 +244,18 @@ join(void **stack) //mostly copied from wait
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if((p->parent != curproc) || (!p->is_child))
+      if((p->parent != curproc) || (p->pgdir!=curproc->pgdir))
         continue;
       havekids = 1;
+      if (p->state != ZOMBIE){
+        continue;
+      }
       if(p->state == ZOMBIE){
         // Found one.
+        *stack = p->stack;
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;

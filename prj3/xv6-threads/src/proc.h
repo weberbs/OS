@@ -50,7 +50,6 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   void* stack;                 // address of start of stack for copying
-  int is_child;                // was this process created by thread library
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -4,6 +4,8 @@
 #include "user.h"
 #include "x86.h"
 
+#define PGSIZE 4096
+
 char*
 strcpy(char *s, const char *t)
 {
@@ -121,16 +123,12 @@ void lock_release(lock_t *lock){
 
 int thread_create(void (*start_routine)(void*, void*), void *arg1, void *arg2){
   //mallock 1 page for stack
-  void *stack = malloc(4096);
-  printf(1, "addr malloced: %d : %p\n", (uint)stack, stack);
-  stack += 4096; //move to top of stack
-  printf(1,"top of stack: %d\n", (uint)stack );
+  void *stack = malloc(PGSIZE);
   int pid = clone(start_routine, arg1, arg2, stack);
   return pid;
 }
 int thread_join() {
   void *stack;
   int pid = join(&stack);
-  free(stack);
   return pid;
 }
