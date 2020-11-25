@@ -122,7 +122,7 @@ sys_mmap(void)
   argint(3, &flags);
   argint(4, &fd);
   argint(5, &offset);
-  return mmap(addr, length, prot, fd, flags, offset);
+  return mmap(addr, length, prot, flags, fd, offset);
 }
 
 int

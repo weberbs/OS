@@ -35,6 +35,7 @@ struct context {
 struct mmap_region {
   uint addr;
   uint length;
+  int prot;
   int type;
   int offset;
   int fd;

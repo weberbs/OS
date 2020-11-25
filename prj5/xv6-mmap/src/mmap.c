@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "mman.h"
 
 void* kmalloc(uint nbytes);
 void kmfree(uint addr);
@@ -14,9 +15,10 @@ void nodedump(struct mmap_region* mp);
 void *
 mmap(void *addr, int length, int prot, int flags, int fd, int offset)
 {
+  cprintf("prot = %d", prot);
   int mmap_start = KERNBASE/2;
   struct proc* p = myproc();
-  pde_t *pgdir = p->pgdir;
+  //pde_t *pgdir = p->pgdir;
   int mapped_addr;
   struct mmap_region *mmap_region = kmalloc(sizeof(struct mmap_region));
   //cprintf("storing node at %d\n", (uint)mmap_region);
@@ -26,12 +28,13 @@ mmap(void *addr, int length, int prot, int flags, int fd, int offset)
 
   if ((uint)p->mmap_region == 0){
     mapped_addr = PGROUNDUP(mmap_start);
-    allocuvm(pgdir, mapped_addr, mapped_addr + length);
     p->mmap_region = mmap_region;
     mmap_region->addr = mapped_addr;
     mmap_region->length = length;
-    mmap_region->type = 0;
-    mmap_region->offset = 0;
+    mmap_region->prot = prot;
+    mmap_region->type = flags;
+    mmap_region->fd = fd;
+    mmap_region->offset = offset;
     mmap_region->next = 0;
 
   } else {
@@ -41,15 +44,23 @@ mmap(void *addr, int length, int prot, int flags, int fd, int offset)
     }
     ////cprintf("here \n");
     mapped_addr = PGROUNDUP(mp->addr + mp->length);
-    allocuvm(pgdir, mapped_addr, mapped_addr + length);
     mp->next = mmap_region;
     mmap_region->addr = mapped_addr;
     mmap_region->length = length;
-    mmap_region->type = 0;
-    mmap_region->offset = 0;
+    mmap_region->prot = prot;
+    mmap_region->type = flags;
+    mmap_region->fd = fd;
+    mmap_region->offset = offset;
     mmap_region->next = 0;
   }
-  //nodedump(mmap_region);
+  nodedump(mmap_region);
+  if (mmap_region->type == MAP_FILE) {
+    cprintf("here\n");
+    struct file *f = p->ofile[fd];
+    fileread(f, (char *)mapped_addr, length);
+    cprintf("in mmap_start: %s", (char *)mapped_addr);
+  }
+
   return (void *)mapped_addr;
 }
 
@@ -94,8 +105,12 @@ munmap(void *addr, uint length)
 
 void nodedump(struct mmap_region* mp) {
   cprintf("node located at %d \n", (uint)mp);
+  cprintf("next %d \n", (uint)mp->next);
   cprintf("addr %d \n", mp->addr);
   cprintf("length %d \n", mp->length);
-  cprintf("next %d \n", (uint)mp->next);
+  cprintf("prot = %d\n", mp->prot);
+  cprintf("flags = %d\n", mp->type);
+  cprintf("fd = %d\n", mp->fd);
+  cprintf("offset = %d\n", mp->offset);
 
 }

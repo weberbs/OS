@@ -26,6 +26,39 @@ tvinit(void)
   initlock(&tickslock, "time");
 }
 
+void pagefault_handler(struct trapframe *tf) {
+  struct proc *curproc = myproc();
+  int fault_addr = rcr2();
+  cprintf("============in pagefault_handler============\n");
+  cprintf("pid %d %s: trap %d err %d on cpu %d "
+    "eip 0x%x addr 0x%x\n",
+    curproc->pid, curproc->name, tf->trapno,
+    tf->err, cpuid(), tf->eip, fault_addr);
+
+  pde_t *pgdir = curproc -> pgdir;
+  char *mem;
+  uint a;
+  a = PGROUNDDOWN(fault_addr);
+  mem = kalloc();
+  if(mem == 0){
+    cprintf("allocuvm out of memory\n");
+  }
+  //cprintf("prot = %d\n", curproc->mmap_region->prot);
+  //cprintf("PTE_W = %d\n", PTE_W);
+  int prot;
+  struct mmap_region* mp = curproc->mmap_region;
+  while(fault_addr < mp->addr || fault_addr > (mp->addr + mp->length)){
+    mp = mp->next;
+  }
+  prot = mp->prot;
+  memset(mem, 0, PGSIZE);
+  if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), prot|PTE_U) < 0){
+    kfree(mem);
+    curproc->killed = 1;
+  }
+  //allocuvm(pgdir, fault_addr, fault_addr+PGSIZE);
+}
+
 void
 idtinit(void)
 {
@@ -76,6 +109,9 @@ trap(struct trapframe *tf)
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
+    break;
+  case T_PGFLT:
+    pagefault_handler (tf);
     break;
 
   //PAGEBREAK: 13

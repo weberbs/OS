@@ -16,6 +16,11 @@ struct {
   struct file file[NFILE];
 } ftable;
 
+int
+fileseek(struct file* f, uint offset){
+  return 0;
+}
+
 void
 fileinit(void)
 {
@@ -154,4 +159,3 @@ filewrite(struct file *f, char *addr, int n)
   }
   panic("filewrite");
 }
-
