@@ -15,7 +15,7 @@ void nodedump(struct mmap_region* mp);
 void *
 mmap(void *addr, int length, int prot, int flags, int fd, int offset)
 {
-  cprintf("prot = %d", prot);
+  //cprintf("prot = %d", prot);
   int mmap_start = KERNBASE/2;
   struct proc* p = myproc();
   //pde_t *pgdir = p->pgdir;
@@ -53,12 +53,13 @@ mmap(void *addr, int length, int prot, int flags, int fd, int offset)
     mmap_region->offset = offset;
     mmap_region->next = 0;
   }
-  nodedump(mmap_region);
+  //nodedump(mmap_region);
   if (mmap_region->type == MAP_FILE) {
-    cprintf("here\n");
+    //cprintf("here\n");
     struct file *f = p->ofile[fd];
+    fileseek(f, offset);
     fileread(f, (char *)mapped_addr, length);
-    cprintf("in mmap_start: %s", (char *)mapped_addr);
+    //cprintf("in mmap_start: %s", (char *)mapped_addr);
   }
 
   return (void *)mapped_addr;

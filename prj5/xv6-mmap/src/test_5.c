@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 
   // munmap
   rc = munmap(addr, map_size);
-  if (rc < 0)
+  if (rc < 0) 
   {
     printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
     exit();

@@ -16,13 +16,6 @@ main(int argc, char *argv[])
 {
   int size = 200;
   char *r1 = mmap(0, size, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
-  printf(1, "XV6_TEST_OUTPUT : Strlen Before modification: %d\n", strlen((char*)r1));
-
-  strcpy(r1, "012345");
-
-  printf(1, "XV6_TEST_OUTPUT : str = %s\n", (char*)r1);
-  printf(1, "XV6_TEST_OUTPUT : Strlen After modification: %d\n", strlen((char*)r1));
-
 
   char *r2 = mmap(0, size, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
 
@@ -60,7 +53,7 @@ main(int argc, char *argv[])
     printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
     exit();
   }
-
+  
   printf(1, "XV6_TEST_OUTPUT : munmap good\n");
 
   exit();
