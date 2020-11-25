@@ -103,6 +103,30 @@ munmap(void *addr, uint length)
   }
 }
 
+int
+msync(void *addr, uint length)
+{
+  //cprintf("unmap %d\n", (uint)addr);
+  struct proc* p = myproc();
+  struct mmap_region* mp = p->mmap_region;
+  int start = (uint)addr;
+  //nodedump(mmap_region);
+  if (mp->addr==0){
+    return 0;
+  }
+
+  while(mp->addr != start){
+    mp = mp->next;
+  }
+  struct file *f = p->ofile[mp->fd];
+  filewrite(f, (char *)start, length);
+
+
+  return 0;
+}
+
+
+
 void nodedump(struct mmap_region* mp) {
   cprintf("node located at %d \n", (uint)mp);
   cprintf("next %d \n", (uint)mp->next);

@@ -11,6 +11,8 @@ void* kmalloc(uint nbytes);
 void kmfree(uint addr);
 void *mmap(uint addr, int length, int prot, int flags, int fd, int offset);
 int munmap(uint addr, uint length);
+int msync(uint addr, uint length);
+
 
 int
 sys_fork(void)
@@ -134,5 +136,16 @@ sys_munmap(void)
   if(argint(1, &length) < 0)
     return -1;
   return munmap(addr, length);
+}
+
+int
+sys_msync(void)
+{
+  int addr, length;
+  if(argint(0, &addr) < 0)
+    return -1;
+  if(argint(1, &length) < 0)
+    return -1;
+  return msync(addr, length);
 
 }

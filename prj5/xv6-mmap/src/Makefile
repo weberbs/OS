@@ -188,6 +188,7 @@ UPROGS=\
 	_test_3\
 	_test_4\
 	_test_5\
+	_test_6\
 
 
 fs.img: mkfs README sample.txt $(UPROGS)
