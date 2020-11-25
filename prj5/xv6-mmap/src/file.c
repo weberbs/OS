@@ -17,7 +17,10 @@ struct {
 } ftable;
 
 int
-fileseek(struct file* f, uint offset){
+fileseek(struct file* f, int offset){
+  acquire(&ftable.lock);
+  f->off = offset;
+  release(&ftable.lock);
   return 0;
 }
 

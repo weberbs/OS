@@ -119,6 +119,7 @@ msync(void *addr, uint length)
     mp = mp->next;
   }
   struct file *f = p->ofile[mp->fd];
+  fileseek(f, mp->offset);
   filewrite(f, (char *)start, length);
 
 
